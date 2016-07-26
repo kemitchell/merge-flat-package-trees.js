@@ -53,3 +53,20 @@ tape('does not merge distinct versions', function (test) {
   )
   test.end()
 })
+
+tape('sorts', function (test) {
+  test.deepEqual(
+    merge(
+      [
+        {name: 'b', version: '1.0.0', links: []},
+        {name: 'a', version: '1.0.0', links: []}
+      ],
+      []
+    ),
+    [
+      {name: 'a', version: '1.0.0', links: []},
+      {name: 'b', version: '1.0.0', links: []}
+    ]
+  )
+  test.end()
+})
