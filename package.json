@@ -1,7 +1,7 @@
 {
   "name": "merge-flat-package-trees",
   "version": "0.0.0",
-  "description": "",
+  "description": "merge flat package dependency tree manifests",
   "author": "Kyle E. Mitchell <kyle@kemitchell.com> (https://kemitchell.com/)",
   "repository": "kemitchell/merge-flat-package-trees.js",
   "files": [
