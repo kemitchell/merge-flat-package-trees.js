@@ -6,9 +6,17 @@
   "dependencies": {
     "semver": "^5.3.0"
   },
+  "devDependencies": {
+    "standard": "^7.1.2",
+    "tape": "^4.6.0"
+  },
   "files": [
     "index.js"
   ],
   "license": "MIT",
-  "repository": "kemitchell/merge-flat-package-trees.js"
+  "repository": "kemitchell/merge-flat-package-trees.js",
+  "scripts": {
+    "lint": "standard",
+    "test": "node test.js"
+  }
 }
