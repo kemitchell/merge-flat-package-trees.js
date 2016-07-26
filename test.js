@@ -54,6 +54,27 @@ tape('does not merge distinct versions', function (test) {
   test.end()
 })
 
+tape('preserves direct dependency ranges', function (test) {
+  var withRange = [
+    {name: 'a', version: '1.0.0', range: '^1.0.0', links: []}
+  ]
+  var withoutRange = [{name: 'a', version: '1.0.0', links: []}]
+  test.deepEqual(merge(withoutRange, withRange), withRange)
+  test.deepEqual(merge(withRange, withoutRange), withRange)
+  test.deepEqual(merge(withRange, withRange), withRange)
+  test.end()
+})
+
+tape('throws for direct-dependency range mismatches', function (test) {
+  test.throws(function () {
+    merge(
+      [{name: 'a', version: '1.0.0', range: '^1.0.0', links: []}],
+      [{name: 'a', version: '1.0.0', range: '^1.1.0', links: []}]
+    )
+  }, /direct-dependency range mismatch/)
+  test.end()
+})
+
 tape('sorts', function (test) {
   test.deepEqual(
     merge(
