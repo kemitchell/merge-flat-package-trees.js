@@ -1,4 +1,4 @@
-var compare = require('compare-flat-package-tree-records')
+var sort = require('sort-flat-package-tree')
 
 module.exports = function (firstTree, secondTree) {
   secondTree.forEach(function (secondElement) {
@@ -26,6 +26,6 @@ module.exports = function (firstTree, secondTree) {
       }
     }
   })
-  firstTree.sort(compare)
+  sort(firstTree)
   return firstTree
 }
