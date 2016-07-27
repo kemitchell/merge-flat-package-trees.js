@@ -1,4 +1,4 @@
-var semver = require('semver')
+var compare = require('compare-flat-package-tree-records')
 
 module.exports = function (firstTree, secondTree) {
   secondTree.forEach(function (secondElement) {
@@ -26,16 +26,6 @@ module.exports = function (firstTree, secondTree) {
       }
     }
   })
-  firstTree.sort(compareDependencies)
+  firstTree.sort(compare)
   return firstTree
-}
-
-function compareDependencies (first, second) {
-  if (first.name < second.name) {
-    return -1
-  } else if (first.name > second.name) {
-    return 1
-  } else {
-    return semver.compare(first.version, second.version)
-  }
 }
