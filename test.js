@@ -84,19 +84,98 @@ tape('throws for direct-dependency range mismatches', function (test) {
   test.end()
 })
 
-tape('sorts', function (test) {
+tape('throws for missing direct range mismatches', function (test) {
+  test.throws(function () {
+    sort(
+      merge(
+        [{name: 'a', missing: true, range: '^1.0.0', links: []}],
+        [{name: 'a', missing: true, range: '^1.1.0', links: []}]
+      )
+    )
+  }, /direct-dependency range mismatch/)
+  test.end()
+})
+
+tape('merges missing', function (test) {
+  test.deepEqual(
+    sort(
+      merge(
+        [{name: 'a', links: [], range: '^1.0.0', missing: true}],
+        [{name: 'a', links: [], range: '^1.0.0', missing: true}]
+      )
+    ),
+    [{name: 'a', links: [], range: '^1.0.0', missing: true}]
+  )
+  test.end()
+})
+
+tape('resolves missing direct', function (test) {
+  test.deepEqual(
+    sort(
+      merge(
+        [{name: 'a', range: '^1.0.0', links: [], missing: true}],
+        [{name: 'a', version: '1.0.1', range: '^1.0.0', links: []}]
+      )
+    ),
+    [
+      {name: 'a', version: '1.0.1', range: '^1.0.0', links: []}
+    ]
+  )
+  test.end()
+})
+
+tape('resolves missing indirect', function (test) {
   test.deepEqual(
     sort(
       merge(
         [
-          {name: 'b', version: '1.0.0', links: []},
-          {name: 'a', version: '1.0.0', links: []}
+          {
+            name: 'a',
+            version: '1.0.0',
+            range: '^1.0.0',
+            links: [{name: 'b', missing: true, range: '^1.0.0'}]
+          },
+          {name: 'b', links: [], missing: true}
         ],
-        []
+        [{name: 'b', version: '1.0.0', links: []}]
       )
     ),
     [
-      {name: 'a', version: '1.0.0', links: []},
+      {
+        name: 'a',
+        version: '1.0.0',
+        range: '^1.0.0',
+        links: [{name: 'b', version: '1.0.0', range: '^1.0.0'}]
+      },
+      {name: 'b', version: '1.0.0', links: []}
+    ]
+  )
+  test.end()
+})
+
+tape('resolves missing indirect', function (test) {
+  test.deepEqual(
+    sort(
+      merge(
+        [
+          {
+            name: 'a',
+            version: '1.0.0',
+            range: '^1.0.0',
+            links: [{name: 'b', missing: true, range: '^1.0.0'}]
+          },
+          {name: 'b', links: [], missing: true}
+        ],
+        [{name: 'b', version: '1.0.0', links: []}]
+      )
+    ),
+    [
+      {
+        name: 'a',
+        version: '1.0.0',
+        range: '^1.0.0',
+        links: [{name: 'b', version: '1.0.0', range: '^1.0.0'}]
+      },
       {name: 'b', version: '1.0.0', links: []}
     ]
   )
