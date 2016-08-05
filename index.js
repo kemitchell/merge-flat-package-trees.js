@@ -1,5 +1,3 @@
-var sort = require('sort-flat-package-tree')
-
 module.exports = function (firstTree, secondTree) {
   secondTree.forEach(function (secondElement) {
     var matchingDependencyIndex = firstTree.findIndex(function (have) {
@@ -26,6 +24,5 @@ module.exports = function (firstTree, secondTree) {
       }
     }
   })
-  sort(firstTree)
   return firstTree
 }
