@@ -1,7 +1,7 @@
 {
   "name": "merge-flat-package-trees",
   "description": "merge flat package dependency tree manifests",
-  "version": "1.1.1",
+  "version": "2.0.0",
   "author": "Kyle E. Mitchell <kyle@kemitchell.com> (https://kemitchell.com/)",
   "devDependencies": {
     "istanbul": "^0.4.4",
