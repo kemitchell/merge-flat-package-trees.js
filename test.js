@@ -18,6 +18,34 @@ tape('concatenates independent dependencies', function (test) {
   test.end()
 })
 
+tape('preserves indirect dependencies', function (test) {
+  test.deepEqual(
+    sort(
+      merge(
+        [
+          {
+            name: 'a',
+            version: '1.0.0',
+            links: [{name: 'b', version: '1.0.0', range: '^1.0.0'}]
+          },
+          {name: 'b', version: '1.0.0', links: []}
+        ],
+        [{name: 'c', version: '1.0.0', links: []}]
+      )
+    ),
+    [
+      {
+        name: 'a',
+        version: '1.0.0',
+        links: [{name: 'b', version: '1.0.0', range: '^1.0.0'}]
+      },
+      {name: 'b', version: '1.0.0', links: []},
+      {name: 'c', version: '1.0.0', links: []}
+    ]
+  )
+  test.end()
+})
+
 tape('merges shared dependencies', function (test) {
   test.deepEqual(
     sort(
@@ -113,12 +141,16 @@ tape('resolves missing direct', function (test) {
   test.deepEqual(
     sort(
       merge(
-        [{name: 'a', range: '^1.0.0', links: [], missing: true}],
+        [
+          {name: 'a', range: '^1.0.0', links: [], missing: true},
+          {name: 'c', range: '^1.0.0', links: [], version: '1.0.0'}
+        ],
         [{name: 'a', version: '1.0.1', range: '^1.0.0', links: []}]
       )
     ),
     [
-      {name: 'a', version: '1.0.1', range: '^1.0.0', links: []}
+      {name: 'a', version: '1.0.1', range: '^1.0.0', links: []},
+      {name: 'c', range: '^1.0.0', links: [], version: '1.0.0'}
     ]
   )
   test.end()
@@ -133,9 +165,13 @@ tape('resolves missing indirect', function (test) {
             name: 'a',
             version: '1.0.0',
             range: '^1.0.0',
-            links: [{name: 'b', missing: true, range: '^1.0.0'}]
+            links: [
+              {name: 'b', missing: true, range: '^1.0.0'},
+              {name: 'c', missing: true, range: '^1.0.0'}
+            ]
           },
-          {name: 'b', links: [], missing: true}
+          {name: 'b', links: [], missing: true},
+          {name: 'c', links: [], missing: true}
         ],
         [{name: 'b', version: '1.0.0', links: []}]
       )
@@ -145,15 +181,19 @@ tape('resolves missing indirect', function (test) {
         name: 'a',
         version: '1.0.0',
         range: '^1.0.0',
-        links: [{name: 'b', version: '1.0.0', range: '^1.0.0'}]
+        links: [
+          {name: 'b', version: '1.0.0', range: '^1.0.0'},
+          {name: 'c', missing: true, range: '^1.0.0'}
+        ]
       },
-      {name: 'b', version: '1.0.0', links: []}
+      {name: 'b', version: '1.0.0', links: []},
+      {name: 'c', missing: true, links: []}
     ]
   )
   test.end()
 })
 
-tape('resolves missing indirect', function (test) {
+tape('multiple links to missing', function (test) {
   test.deepEqual(
     sort(
       merge(
@@ -162,11 +202,23 @@ tape('resolves missing indirect', function (test) {
             name: 'a',
             version: '1.0.0',
             range: '^1.0.0',
-            links: [{name: 'b', missing: true, range: '^1.0.0'}]
+            links: [{name: 'd', missing: true, range: '^1.0.0'}]
           },
-          {name: 'b', links: [], missing: true}
+          {
+            name: 'b',
+            version: '1.0.0',
+            range: '^1.0.0',
+            links: [{name: 'd', missing: true, range: '^1.1.0'}]
+          },
+          {
+            name: 'c',
+            version: '1.0.0',
+            range: '^1.0.0',
+            links: [{name: 'd', missing: true, range: '^2.0.0'}]
+          },
+          {name: 'd', links: [], missing: true}
         ],
-        [{name: 'b', version: '1.0.0', links: []}]
+        [{name: 'd', version: '1.1.0', links: []}]
       )
     ),
     [
@@ -174,9 +226,22 @@ tape('resolves missing indirect', function (test) {
         name: 'a',
         version: '1.0.0',
         range: '^1.0.0',
-        links: [{name: 'b', version: '1.0.0', range: '^1.0.0'}]
+        links: [{name: 'd', version: '1.1.0', range: '^1.0.0'}]
       },
-      {name: 'b', version: '1.0.0', links: []}
+      {
+        name: 'b',
+        version: '1.0.0',
+        range: '^1.0.0',
+        links: [{name: 'd', version: '1.1.0', range: '^1.1.0'}]
+      },
+      {
+        name: 'c',
+        version: '1.0.0',
+        range: '^1.0.0',
+        links: [{name: 'd', missing: true, range: '^2.0.0'}]
+      },
+      {name: 'd', links: [], missing: true},
+      {name: 'd', version: '1.1.0', links: []}
     ]
   )
   test.end()
