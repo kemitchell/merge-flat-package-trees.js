@@ -24,7 +24,7 @@ and:
 ]
 ```
 
-merge them into a single manifest:
+merge the second into the first:
 
 ```json
 [
