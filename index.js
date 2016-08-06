@@ -10,48 +10,44 @@ module.exports = function (firstTree, secondTree) {
       firstTree.push(newDependency)
     }
   })
-  resolveMissing(firstTree)
-  removeExtraMissing(firstTree)
-  checkForRangeConflicts(firstTree)
-  collapseDirectDependencies(firstTree)
-  return firstTree
+  resolveMissingIndirectDependencies(firstTree)
+  throwForDirectDependencyRangeConflict(firstTree)
+  removeSupersededDependencies(firstTree)
 }
 
 function equivalents (a, b) {
   return (
     a.name === b.name &&
     a.version === b.version &&
-    a.missing === b.missing &&
     a.range === b.range
   )
 }
 
-function collapseDirectDependencies (tree) {
+function resolveMissingIndirectDependencies (tree) {
   tree.forEach(function (dependency) {
-    if (dependency.range === undefined) {
-      var otherHasRange = tree.some(function (otherDependency) {
-        return (
-          otherDependency.name === dependency.name &&
-          otherDependency.version === dependency.version &&
-          otherDependency.range !== undefined
-        )
-      })
-      if (otherHasRange) {
-        spliceOut(tree, dependency)
+    dependency.links.forEach(function (link) {
+      var name = link.name
+      var range = link.range
+      var version = link.version
+      if (version === undefined) {
+        var satisfying = maxSatisfying(tree, name, range)
+        if (satisfying) {
+          link.version = satisfying.version
+        }
       }
-    }
+    })
   })
 }
 
-function checkForRangeConflicts (tree) {
+function throwForDirectDependencyRangeConflict (tree) {
   tree.forEach(function (dependency) {
     var name = dependency.name
     // Check for direct-dependency range conflicts.
-    if (dependency.hasOwnProperty('range')) {
+    if (dependency.range !== undefined) {
       var hasDirectConflict = tree.some(function (otherDependency) {
         return (
           otherDependency.name === name &&
-          otherDependency.hasOwnProperty('range') &&
+          otherDependency.range !== undefined &&
           otherDependency.range !== dependency.range
         )
       })
@@ -63,84 +59,65 @@ function checkForRangeConflicts (tree) {
         throw error
       }
     }
-    // Check for link range conflicts.
-    /*
-    dependency.links.forEach(function (link) {
-      var conflicts = dependency.links.some(function (otherLink) {
-        return (
-          otherLink.name === link.name &&
-          otherLink.range !== link.range
-        )
-      })
-      if (conflicts) {
-        var error = new Error(
-          'link dependency range mismatch for ' + link.name
-        )
-        error.rangeConflict = true
-        throw error
-      }
-    })
-    */
   })
 }
 
-function resolveMissing (tree) {
-  tree.forEach(function (dependency) {
-    if (dependency.missing === true && dependency.range !== undefined) {
-      var missing = dependency
-      var range = missing.range
-      var possiblySatisfying = tree.filter(function (possibleMatch) {
-        return (
-          missing !== possibleMatch &&
-          missing.name === possibleMatch.name &&
-          satisfiesRange(possibleMatch.version, range)
-        )
-      })
-      if (possiblySatisfying.length !== 0) {
-        var availableVersions = possiblySatisfying
-        .map(function (dependency) {
-          return dependency.version
-        })
-        var version = semver.maxSatisfying(availableVersions, range)
-        var satisfying = find(
-          possiblySatisfying,
-          function (dependency) {
-            return dependency.version === version
-          }
-        )
-        var rangeMismatch = (
-          satisfying.range !== undefined &&
-          satisfying.range !== missing.range
-        )
-        if (rangeMismatch) {
-          var error = new Error(
-            'direct-dependency range mismatch ' +
-            'for ' + missing.name + '@' + version
-          )
-          error.rangeMismatch = true
-          throw error
-        } else {
-          satisfying.range = missing.range
-          spliceOut(tree, missing)
+function removeSupersededDependencies (tree) {
+  tree.forEach(function (dependency, index) {
+    if (dependency.range) {
+      var name = dependency.name
+      var range = dependency.range
+      var superseding
+      // Check missing direct dependencies.
+      if (dependency.version === undefined) {
+        superseding = maxSatisfying(tree, name, range)
+        if (superseding) {
+          // Any range conflict that might appear here would have caused
+          // `checkForDirectDependencyRangeConflict` to throw an error.
+          superseding.range = dependency.range
+          spliceOut(tree, dependency)
         }
+      // Check resolved direct dependencies.
+      } else /* if (dependency.version) */ {
+        var version = dependency.version
+        tree.forEach(function (other) {
+          var superseded = (
+            other.name === name &&
+            other.version === version &&
+            other.range === undefined
+          )
+          if (superseded) {
+            spliceOut(tree, other)
+          }
+        })
       }
     }
-    dependency.links.forEach(function (link) {
-      if (link.missing === true) {
-        var match = find(tree, function (possibleMatch) {
-          return (
-            possibleMatch.name === link.name &&
-            possibleMatch.hasOwnProperty('version') &&
-            satisfiesRange(possibleMatch.version, link.range)
-          )
-        })
-        if (match) {
-          delete link.missing
-          link.version = match.version
-        }
-      }
-    })
   })
+}
+
+function maxSatisfying (tree, name, range) {
+  var candidates = []
+  tree.forEach(function (dependency) {
+    var match = (
+      dependency.name === name &&
+      dependency.version !== null &&
+      satisfiesRange(dependency.version, range)
+    )
+    if (match) {
+      candidates.push(dependency)
+    }
+  })
+  if (candidates.length === 0) {
+    return null
+  } else {
+    var availableVersions = candidates.map(function (dependency) {
+      return dependency.version
+    })
+    var version = semver.maxSatisfying(availableVersions, range)
+    return find(candidates, function (dependency) {
+      return dependency.version === version
+    })
+  }
 }
 
 function satisfiesRange (version, range) {
@@ -153,27 +130,10 @@ function satisfiesRange (version, range) {
   }
 }
 
-function removeExtraMissing (tree) {
-  console.log(JSON.stringify(tree, null, 2))
-  tree.forEach(function (dependency) {
-    if (dependency.missing && dependency.range === undefined) {
-      var haveInboundLink = tree.some(function (dependency) {
-        return dependency.links.some(function (link) {
-          return (
-            link.name === dependency.name &&
-            link.missing === true
-          )
-        })
-      })
-      console.log('%s is %j', 'haveInboundLink', haveInboundLink)
-      if (!haveInboundLink) {
-        spliceOut(tree, dependency)
-      }
-    }
-  })
-  console.log(JSON.stringify(tree, null, 2))
-}
-
 function spliceOut (array, element) {
-  array.splice(array.indexOf(element), 1)
+  var index = array.indexOf(element)
+  /* istanbul ignore else */
+  if (index !== -1) {
+    array.splice(index, 1)
+  }
 }
